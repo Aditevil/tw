@@ -1,6 +1,9 @@
 # Test fails when expected images are not all extracted
 ! chelm test cg.json --chart=chart
 stdout '"passed": false'
+stdout '"missing"'
+stdout '"expected"'
+stderr 'FAIL: case "default": missing images: missing'
 
 -- cg.json --
 {

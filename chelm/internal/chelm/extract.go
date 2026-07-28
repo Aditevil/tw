@@ -19,10 +19,18 @@ type ExtractedImage struct {
 	Original string // the original string before normalization
 }
 
+// UnparseableCandidate records an image candidate that could not be parsed as an OCI reference.
+type UnparseableCandidate struct {
+	Candidate string
+	Error     string
+	Extractor string
+}
+
 // ExtractionResult contains images found by extractors.
 type ExtractionResult struct {
 	All         []ExtractedImage
 	ByExtractor map[string][]string
+	Unparseable []UnparseableCandidate
 }
 
 // Extractor finds candidate image references.
@@ -59,6 +67,11 @@ func ExtractImages(r io.Reader, extractors map[string]Extractor) *ExtractionResu
 		for _, candidate := range ext.Extract(docs) {
 			ociRef, err := images.NewRef(candidate)
 			if err != nil {
+				result.Unparseable = append(result.Unparseable, UnparseableCandidate{
+					Candidate: candidate,
+					Error:     err.Error(),
+					Extractor: extName,
+				})
 				continue
 			}
 			normalized := ociRef.FullRef
@@ -187,6 +200,12 @@ func (RegexExtractor) Extract(docs []map[string]any) []string {
 	var all []match
 	for _, p := range imagePatterns {
 		for _, loc := range p.FindAllIndex(raw, -1) {
+			// If the optional digest suffix failed to match and an '@' follows,
+			// the source has a malformed digest tail (e.g. @sha256:sha256:...).
+			// Skip rather than silently accept the truncated prefix as clean.
+			if loc[1] < len(raw) && raw[loc[1]] == '@' {
+				continue
+			}
 			all = append(all, match{
 				value: string(raw[loc[0]:loc[1]]),
 				start: loc[0],

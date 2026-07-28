@@ -76,6 +76,9 @@ image:
       "images": [
         "cgr.test/chainguard/test/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       ],
+      "expected": [
+        "app"
+      ],
       "extractors": {
         "regex": [
           "cgr.test/chainguard/test/app@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -134,6 +137,9 @@ image:
       "passed": false,
       "images": [
         "cgr.test/chainguard/test/app:1.25"
+      ],
+      "expected": [
+        "app"
       ],
       "extractors": {
         "regex": [
@@ -194,6 +200,12 @@ image:
       "images": [
         "cgr.test/library/nginx:v0.0.0"
       ],
+      "expected": [
+        "app"
+      ],
+      "missing": [
+        "app"
+      ],
       "extractors": {
         "regex": [
           "cgr.test/library/nginx:v0.0.0"
@@ -253,6 +265,12 @@ image:
       "images": [
         "index.docker.io/chainguard/test/app:v0.0.0"
       ],
+      "expected": [
+        "app"
+      ],
+      "missing": [
+        "app"
+      ],
       "extractors": {
         "regex": [
           "index.docker.io/chainguard/test/app:v0.0.0"
@@ -309,6 +327,9 @@ image:
       "passed": false,
       "images": [
         "cgr.test/chainguard/test/app:latest"
+      ],
+      "expected": [
+        "app"
       ],
       "extractors": {
         "regex": [
@@ -367,17 +388,20 @@ sidecar: busybox:latest
       "name": "default",
       "passed": false,
       "images": [
-        "cgr.test/chainguard/test/app@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "cgr.test/chainguard/test/sidecar@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        "cgr.test/chainguard/test/app@sha256:a172cedcae47474b615c54d510a5d84a8dea3032e958587430b413538be3f333",
+        "cgr.test/chainguard/test/sidecar@sha256:6c8b4535ccc87f19061c4646189e33d78f01c8b63dc4e3cb2f630b1796ee93b6"
+      ],
+      "expected": [
+        "app"
       ],
       "extractors": {
         "regex": [
-          "cgr.test/chainguard/test/app@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "cgr.test/chainguard/test/sidecar@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "cgr.test/chainguard/test/app@sha256:a172cedcae47474b615c54d510a5d84a8dea3032e958587430b413538be3f333",
+          "cgr.test/chainguard/test/sidecar@sha256:6c8b4535ccc87f19061c4646189e33d78f01c8b63dc4e3cb2f630b1796ee93b6"
         ],
         "structured": [
-          "cgr.test/chainguard/test/app@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "cgr.test/chainguard/test/sidecar@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "cgr.test/chainguard/test/app@sha256:a172cedcae47474b615c54d510a5d84a8dea3032e958587430b413538be3f333",
+          "cgr.test/chainguard/test/sidecar@sha256:6c8b4535ccc87f19061c4646189e33d78f01c8b63dc4e3cb2f630b1796ee93b6"
         ]
       }
     }

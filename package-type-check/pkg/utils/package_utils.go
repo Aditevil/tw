@@ -9,7 +9,7 @@ import (
 
 // IsPackageInstalled checks if the package is installed
 func IsPackageInstalled(pkg string) error {
-	cmd := exec.Command("apk", "info", "-eq", pkg)
+	cmd := exec.Command("apk", "info", "--installed", "-q", pkg)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
@@ -20,7 +20,7 @@ func IsPackageInstalled(pkg string) error {
 
 // GetTotalApkCount retrieves the total count of installed APK packages in the environment
 func GetTotalApkCount() int {
-	cmd := exec.Command("apk", "info", "-L")
+	cmd := exec.Command("apk", "info", "--installed", "-L")
 	output, err := cmd.Output()
 	if err != nil {
 		return 0
@@ -44,7 +44,7 @@ func GetPackageFiles(pkg string) ([]string, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command("apk", "info", "-qL", pkg)
+	cmd := exec.Command("apk", "info", "--installed", "-qL", pkg)
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get files for package %q: %w", pkg, err)
@@ -199,15 +199,26 @@ func IsDevPackage(pkg string) bool {
 	return strings.HasSuffix(pkg, "-dev") || strings.HasSuffix(pkg, "-devel")
 }
 
-// HasHeaderFiles checks if package contains .h files under /usr
-func HasHeaderFiles(pkg string) (bool, error) {
+// isHeaderFile checks if a filename has a C or C++ header extension.
+func isHeaderFile(file string) bool {
+	for _, ext := range []string{".h", ".hpp", ".hxx", ".hh", ".h++"} {
+		if strings.HasSuffix(file, ext) {
+			return true
+		}
+	}
+	return false
+}
+
+// HasHeaderFiles checks if package contains C/C++ header files under the specified prefix
+func HasHeaderFiles(pkg string, prefix string) (bool, error) {
 	files, err := GetPackageFiles(pkg)
 	if err != nil {
 		return false, err
 	}
 
+	normalizedPrefix := NormalizePath(prefix)
 	for _, file := range files {
-		if strings.HasPrefix(file, "/usr/") && strings.HasSuffix(file, ".h") {
+		if strings.HasPrefix(file, normalizedPrefix) && isHeaderFile(file) {
 			return true, nil
 		}
 	}

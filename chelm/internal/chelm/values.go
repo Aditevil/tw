@@ -1,12 +1,14 @@
 package chelm
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 
 	"chainguard.dev/sdk/helm/images"
 	"dario.cat/mergo"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/opencontainers/go-digest"
 )
 
 // Test constants for generating marker values.
@@ -15,9 +17,40 @@ const (
 	DefaultTestRegistry   = "cgr.test"
 	DefaultTestRepository = "chainguard/test"
 	DefaultTestTag        = "v0.0.0"
-	DefaultTestDigest     = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-	DefaultTestPseudoTag  = DefaultTestTag + "@" + DefaultTestDigest
 )
+
+// TestDigest returns a digest.Digest given an imageID.
+func TestDigest(imageID string) digest.Digest {
+	h := sha256.Sum256([]byte(imageID))
+	return digest.NewDigestFromBytes(digest.SHA256, h[:])
+}
+
+// DeclaresDigest reports whether img's values reference a marker whose
+// resolved value contains a digest: ${digest}, ${pseudo_tag} (tag@digest in
+// a tag-shaped slot), or ${ref} (repo@digest).
+func DeclaresDigest(img *images.Image) bool {
+	if img == nil || img.Values == nil {
+		return false
+	}
+	var found bool
+	m := &images.Mapping{Images: map[string]*images.Image{"_": img}}
+	// Abuse Walk for lexing: the SDK's lexer is unexported, but Walk recurses
+	// through values and hands us the TokenList for each string. The return
+	// value and any walk error are discarded — we only want the side effect.
+	_, _ = m.Walk(func(_ string, tokens images.TokenList) (any, error) {
+		for _, tok := range tokens {
+			f, ok := tok.(images.RefField)
+			if !ok {
+				continue
+			}
+			if f == images.Digest || f == images.PseudoTag || f == images.Ref {
+				found = true
+			}
+		}
+		return "", nil
+	})
+	return found
+}
 
 // GenerateValues creates Helm values for a test case.
 // Merges in order: image values < global test values < case values < extra values
@@ -69,13 +102,13 @@ func generateImageValues(m *images.Mapping, testRegistry string) (map[string]any
 // testResolver returns a WalkFunc that substitutes markers with test values.
 func testResolver(registry name.Registry) images.WalkFunc {
 	return func(imageID string, tokens images.TokenList) (any, error) {
-		repo := registry.Repo(DefaultTestRepository, imageID)
+		repo := registry.Repo(DefaultTestRepository, strings.ToLower(imageID))
 
 		var sb strings.Builder
 		for _, tok := range tokens {
 			switch v := tok.(type) {
 			case images.RefField:
-				sb.WriteString(resolveField(v, repo))
+				sb.WriteString(resolveField(v, imageID, repo))
 			default:
 				sb.WriteString(fmt.Sprint(v))
 			}
@@ -84,7 +117,8 @@ func testResolver(registry name.Registry) images.WalkFunc {
 	}
 }
 
-func resolveField(f images.RefField, repo name.Repository) string {
+func resolveField(f images.RefField, imageID string, repo name.Repository) string {
+	d := TestDigest(imageID)
 	switch f {
 	case images.Registry:
 		return repo.RegistryStr()
@@ -95,11 +129,11 @@ func resolveField(f images.RefField, repo name.Repository) string {
 	case images.Tag:
 		return DefaultTestTag
 	case images.Digest:
-		return DefaultTestDigest
+		return d.String()
 	case images.PseudoTag:
-		return DefaultTestPseudoTag
+		return DefaultTestTag + "@" + d.String()
 	case images.Ref:
-		return repo.Digest(DefaultTestDigest).Name()
+		return repo.Digest(d.String()).Name()
 	default:
 		return ""
 	}
